@@ -33,7 +33,7 @@ public class NioServer {
                 if (key.isAcceptable()) { // 有连接可以接受
                     SocketChannel channel = ((ServerSocketChannel) key.channel()).accept();
                     channel.configureBlocking(false);
-                    channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+                    channel.register(selector, SelectionKey.OP_READ);
 
                     System.out.println("与【" + channel.getRemoteAddress() + "】建立了连接！");
 
@@ -60,6 +60,9 @@ public class NioServer {
                         }
                     }
 
+                    // 这里应该是在其他的线程处理业务，在业务处理结束之后，注册写事件
+                    key.channel().register(selector, SelectionKey.OP_WRITE);
+
                 } else if (key.isWritable()) {
                     // 创建一个缓冲区
                     ByteBuffer buffer = ByteBuffer.allocate(100);
@@ -70,6 +73,9 @@ public class NioServer {
                     while (buffer.hasRemaining()) {
                         ((SocketChannel) key.channel()).write(buffer);
                     }
+
+                    // 写完数据后关闭
+                    key.channel().close();
                 }
 
                 // 已经处理的事件一定要手动移除
